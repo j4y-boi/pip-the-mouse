@@ -9,6 +9,7 @@ Pip was written using circuitPython, which is why he's named pip. Ya know, the p
 # Game Functions
 - Feeding Pip an assortment of foods! (cheese, peanuts, apple slices, grapes)
 - If he's bored he'll start to sleep
+- VERY IMPORTANT AAAA PLEASE LISTEN, IF YOU FEED HIM TOO MUCH, HE'LL uhhh alt+f4 from life...
 
 # Playing it
 Oh! You want to play the game! Sure, here are some instructions:
