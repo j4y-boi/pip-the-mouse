@@ -1,4 +1,4 @@
-![logo](readme-assets/logo_Trimmed.png)
+![logo](readme-assets/logoTrimmed.png)
 #  Your small mouse friend written in Python! (Made for Hackapet) 
 Pip the Mouse is a small game/pet written for your Hackapet! You can watch him sleep, feed him, ... If something goes wrong he'll start to climb walls so, watch out for that...  
 
