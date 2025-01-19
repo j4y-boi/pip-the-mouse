@@ -11,6 +11,15 @@ Pip was written using circuitPython, which is why he's named pip. Ya know, the p
 - If he's bored he'll start to sleep
 - VERY IMPORTANT AAAA PLEASE LISTEN, IF YOU FEED HIM TOO MUCH, HE'LL uhhh alt+f4 from life...
 
+# Game Controls
+**PC:**
+ - Left Arrow: Open GUI
+ - Up Arrow: Drop food
+ - Down Arrow: Wake up when sleeping
+  
+**Hackapet:**
+- I'll add support when I get one...
+
 # Playing it
 Oh! You want to play the game! Sure, here are some instructions:
 - Download the repo as a zip
@@ -19,7 +28,7 @@ Oh! You want to play the game! Sure, here are some instructions:
 python3 -m venv .env
 source .env/bin/activate
 ```
-- Next, install the necessary libraries using
+- Next, install the necessary libraries using pip (see what I did there)
 ```
 pip3 install blinka-displayio-pygamedisplay adafruit-circuitpython-display-text
 ```
