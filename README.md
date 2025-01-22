@@ -1,4 +1,4 @@
-![logo](readme-assets/logov2Trimmed.png)
+![logo](https://raw.githubusercontent.com/j4y-boi/pip-the-mouse/refs/heads/main/readme-assets/logov2Trimmed.png)
 #  Your small mouse friend written in Python! (Made for Hackapet) 
 Pip the Mouse is a small game/pet written for your Hackapet! You can watch him sleep, feed him, ... If something goes wrong he'll start to climb walls so, watch out for that...  
 
@@ -35,8 +35,8 @@ pip3 install blinka-displayio-pygamedisplay adafruit-circuitpython-display-text
 - Now run main.py while you're in your venv and you should be good to go!
 
 # Some screenshots
-![a screenshot from one type of room (dark walls)](readme-assets/screenshots/screenshot1.png)
-![a screenshot from one type of room (light walls)](readme-assets/screenshots/screenshot2.png)
-![a screenshot of the in-game UI](readme-assets/screenshots/screenshot3.png)
-![a screenshot of when Pip is hungry](readme-assets/screenshots/screenshot4.png)
-![a screenshot of Pip if he isn't fed/fed too much](readme-assets/screenshots/screenshot5.png)
+![a screenshot from one type of room (dark walls)](https://raw.githubusercontent.com/j4y-boi/pip-the-mouse/refs/heads/main/readme-assets/screenshots/screenshot1.png)
+![a screenshot from one type of room (light walls)](https://raw.githubusercontent.com/j4y-boi/pip-the-mouse/refs/heads/main/readme-assets/screenshots/screenshot2.png)
+![a screenshot of the in-game UI](https://raw.githubusercontent.com/j4y-boi/pip-the-mouse/refs/heads/main/readme-assets/screenshots/screenshot3.png)
+![a screenshot of when Pip is hungry](https://raw.githubusercontent.com/j4y-boi/pip-the-mouse/refs/heads/main/readme-assets/screenshots/screenshot4.png)
+![a screenshot of Pip if he isn't fed/fed too much](https://raw.githubusercontent.com/j4y-boi/pip-the-mouse/refs/heads/main/readme-assets/screenshots/screenshot5.png)
