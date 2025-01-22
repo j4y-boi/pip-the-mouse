@@ -341,6 +341,34 @@ while True:
             pygame.quit()
             exit()
 
+    if cycleCount % int(TargetFPS/2) == 0: #background
+        background_sprite[0] = frames["background"]
+        frames["background"] = (frames["background"] + 1) % (background_sheet.width // background_sprite.tile_width)
+
+    if int((lastFedCycle-cycleCount)/TargetFPS) <= 5 or keys[pygame.K_LEFT] or died or lastFedCycle >= cycleCount+(TargetFPS*(tooFedTime-10)*nutritionalValue): # if less than 5 secs left befor hungy
+        if not bg_Sprite.y >= -96:
+            bg_Sprite.y += 2
+    else:
+        if not bg_Sprite.y <= -128:
+            bg_Sprite.y -= 2
+
+    if (keys[pygame.K_LEFT] and died == False) or (died == True and animationLoopTimes == 1):
+        if not bg_Sprite2.y <= 0:
+            bg_Sprite2.y -= 2
+    else:
+        if bg_Sprite2.y <= 32:
+            bg_Sprite2.y += 2
+
+    labels.x= bg_Sprite.x+5
+    labels.y= bg_Sprite.y+110
+    labels.hidden = bg_Sprite.hidden
+
+    label2.x= bg_Sprite2.x+5
+    label2.y= bg_Sprite2.y+110
+    label2.hidden = bg_Sprite2.hidden
+
+    # should happen every tick /\
+
     if died == False:
         splash.remove(angry_eyebrows_sprite)
         splash.append(angry_eyebrows_sprite)
@@ -638,35 +666,6 @@ while True:
         if animationLoopTimes == 0:
             if keys[pygame.K_DOWN]:
                 setup()
-
-
-    # should happen every tick \/
-
-    if cycleCount % int(TargetFPS/2) == 0: #background
-        background_sprite[0] = frames["background"]
-        frames["background"] = (frames["background"] + 1) % (background_sheet.width // background_sprite.tile_width)
-
-    if int((lastFedCycle-cycleCount)/TargetFPS) <= 5 or keys[pygame.K_LEFT] or died or lastFedCycle >= cycleCount+(TargetFPS*(tooFedTime-10)*nutritionalValue): # if less than 5 secs left befor hungy
-        if not bg_Sprite.y >= -96:
-            bg_Sprite.y += 2
-    else:
-        if not bg_Sprite.y <= -128:
-            bg_Sprite.y -= 2
-
-    if (keys[pygame.K_LEFT] and died == False) or (died == True and animationLoopTimes == 1):
-        if not bg_Sprite2.y <= 0:
-            bg_Sprite2.y -= 2
-    else:
-        if bg_Sprite2.y <= 32:
-            bg_Sprite2.y += 2
-
-    labels.x= bg_Sprite.x+5
-    labels.y= bg_Sprite.y+110
-    labels.hidden = bg_Sprite.hidden
-
-    label2.x= bg_Sprite2.x+5
-    label2.y= bg_Sprite2.y+110
-    label2.hidden = bg_Sprite2.hidden
 
     time.sleep(1/TargetFPS) #Should bring us close enough
 
