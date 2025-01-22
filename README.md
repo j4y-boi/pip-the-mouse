@@ -35,3 +35,8 @@ pip3 install blinka-displayio-pygamedisplay adafruit-circuitpython-display-text
 - Now run main.py while you're in your venv and you should be good to go!
 
 # Some screenshots
+![a screenshot from one type of room (dark walls)](readme-assets/screenshots/screenshot1.png)
+![a screenshot from one type of room (light walls)](readme-assets/screenshots/screenshot2.png)
+![a screenshot of the in-game UI](readme-assets/screenshots/screenshot3.png)
+![a screenshot of when Pip is hungry](readme-assets/screenshots/screenshot4.png)
+![a screenshot of Pip if he isn't fed/fed too much](readme-assets/screenshots/screenshot5.png)
