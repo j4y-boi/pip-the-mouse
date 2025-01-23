@@ -256,7 +256,7 @@ def setup():
     for sprite in sprites:
         sprite.hidden = True
 
-    lastFedCycle = TargetFPS*startHunger # FEED THE MOUS PLEASEEEE
+    lastFedCycle = cycleCount+TargetFPS*startHunger # FEED THE MOUS PLEASEEEE
 
     direction = "right"
 
