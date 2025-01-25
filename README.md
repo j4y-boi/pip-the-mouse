@@ -14,9 +14,10 @@ Pip was written using circuitPython, which is why he's named pip. Ya know, the p
 
 # Game Controls
 **PC:**
- - Left Arrow: Open GUI
- - Up Arrow: Drop food
- - Down Arrow: Wake up when sleeping
+ - Left Arrow: Open Stats (Time before hunger/exercise, time alive)
+ - Up Arrow: Open drop menu
+ - Up + Left Arrow: Drop ball
+ - Up + Right Arrow: Drop food
   
 **Hackapet:**
 - I'll add support when I get one...
