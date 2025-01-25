@@ -1,3 +1,7 @@
+# Pip the Mouse
+# Created for Hackapet
+# Made by j4y_boi
+
 import displayio
 from blinka_displayio_pygamedisplay import PyGameDisplay
 import pygame
@@ -8,7 +12,8 @@ from random import seed
 from adafruit_bitmap_font import bitmap_font
 from displayio import Bitmap
 
-indieFlower12 = bitmap_font.load_font("fonts/Indie-Flower-11.bdf", Bitmap)
+indieFlower11 = bitmap_font.load_font("fonts/Indie-Flower-11.bdf", Bitmap)
+Delius10 = bitmap_font.load_font("fonts/Delius-10.bdf", Bitmap)
 
 for x in range(randint(0,10)): #This might look dangerous and all, but this is just to make RNG a bit better
     seed(randint(0,9999999+x))
@@ -19,35 +24,28 @@ splash = displayio.Group()
 UIlayer = displayio.Group()
 mainlayer = displayio.Group()
 
-# Config
-debug = False
+# Config (sorry for the essay, better too much documentation than too little am i right)
+
+debug = False #should be off if you're planning on writing it, quite resource intensive (just prints extra data)
 TargetFPS = 15 # default = 15 (does change the animation speeds, FIXED WHOOOOOO)
-cheezesspawnlimit = 5 #for performance and also so it doesnt explod (default = 10)
+cheezesspawnlimit = 10 #for performance and also so it doesnt explod (default = 10)
 feedingCooldown = 1 #cooldown inbetween giving food (in seconds, default 1)
 notFedTime = 20 #amount of time of unfed before death (in seconds, default 20)
 tooFedTime = 50 #amount of food before death (in amounts of food, default 50)
 nutritionalValue = 20 #uhhh yeah (default 20)
 startHunger = 30 #how much time before mous starts to get hungy (in seconds, default 30)
+startFitness = 30 #how much time before pip needs to start MOVIN (in seconds, default 30)
+exerciseNeed = 60 #mouse needs to move atleast once every this much seconds (in seconds, default 60)
+noexerciseTime = 30 #if the mouse isnt moving after (exerciseNeed) seconds, he'll dei (in seconds, default 30)
+
+# End Config :P
+
 
 cheese = displayio.OnDiskBitmap("assets/cheese.bmp")
 apple = displayio.OnDiskBitmap("assets/apple_slice.bmp")
 peanut = displayio.OnDiskBitmap("assets/peanut.bmp")
 grapes = displayio.OnDiskBitmap("assets/grapes.bmp")
 foods = [cheese,grapes,peanut,apple]
-
-angry_eyebrows_file = displayio.OnDiskBitmap("assets/angry_mouse.bmp")
-angry_eyebrows_sprite = displayio.TileGrid(
-    angry_eyebrows_file,
-    pixel_shader=angry_eyebrows_file.pixel_shader,
-    width=1,
-    height=1,
-    tile_width=32,
-    tile_height=32,
-    default_tile=0,
-    x=(display.width - 32) // 2,  
-    y=display.height - 32 - 0
-)
-splash.append(angry_eyebrows_sprite)
 
 # Background Spritesheet #
 background_sheet = displayio.OnDiskBitmap(f"assets/room{randint(1,2)}.bmp")
@@ -64,6 +62,20 @@ background_sprite = displayio.TileGrid(
 )
 splash.append(background_sprite)
 
+angry_eyebrows_file = displayio.OnDiskBitmap("assets/angry_mouse.bmp")
+angry_eyebrows_sprite = displayio.TileGrid(
+    angry_eyebrows_file,
+    pixel_shader=angry_eyebrows_file.pixel_shader,
+    width=1,
+    height=1,
+    tile_width=32,
+    tile_height=32,
+    default_tile=0,
+    x=(display.width - 32) // 2,  
+    y=display.height - 32 - 0
+)
+splash.append(angry_eyebrows_sprite)
+
 # Mouse Spritesheet #
 mouse_sheet = displayio.OnDiskBitmap("assets/idle_mouse.bmp")
 mouse_sprite = displayio.TileGrid(
@@ -77,7 +89,6 @@ mouse_sprite = displayio.TileGrid(
     x=(display.width - 32) // 2,  
     y=display.height - 32 - 10     
 )
-
 splash.append(mouse_sprite)
 
 # alt+f4 from life Mouse Spritesheet #
@@ -93,9 +104,7 @@ died_mouse_sprite = displayio.TileGrid(
     x=(display.width - 32) // 2,  
     y=display.height - 32 - 10     
 )
-
 splash.append(died_mouse_sprite)
-
 
 # itch Mouse Spritesheet #
 itch_mouse_sheet = displayio.OnDiskBitmap("assets/itch_mouse.bmp")
@@ -127,21 +136,6 @@ walk_mouse_sprite = displayio.TileGrid(
 )
 splash.append(walk_mouse_sprite)
 
-# walk mirrored Mouse Spritesheet #
-walkm_mouse_sheet = displayio.OnDiskBitmap("assets/walkmirror_mouse.bmp")
-walkm_mouse_sprite = displayio.TileGrid(
-    walkm_mouse_sheet,
-    pixel_shader=walkm_mouse_sheet.pixel_shader,
-    width=1,
-    height=1,
-    tile_width=32,
-    tile_height=32,
-    default_tile=0,
-    x=0,  
-    y=display.height - 32 - 10     
-)
-splash.append(walkm_mouse_sprite)
-
 # Sleeping Mouse Spritesheet #
 sleep_mouse_sheet = displayio.OnDiskBitmap("assets/sleep_mouse.bmp")
 sleep_mouse_sprite = displayio.TileGrid(
@@ -156,6 +150,127 @@ sleep_mouse_sprite = displayio.TileGrid(
     y=display.height - 32 - 10     
 )
 splash.append(sleep_mouse_sprite)
+
+# playing mouse spritesheet #
+play_mouse_sheet = displayio.OnDiskBitmap("assets/play_mouse.bmp")
+play_mouse_sprite = displayio.TileGrid(
+    play_mouse_sheet,
+    pixel_shader=play_mouse_sheet.pixel_shader,
+    width=1,
+    height=1,
+    tile_width=64,
+    tile_height=64,
+    default_tile=0,
+    x=mouse_sprite.x + 16,  
+    y=mouse_sprite.y + 30
+)
+splash.append(play_mouse_sprite)
+
+foodz = []
+def giveFood():
+    chosen = foods[randint(0,len(foods)-1)]
+
+    foodSprite = displayio.TileGrid(
+        chosen,
+        pixel_shader=chosen.pixel_shader,
+        width=1,
+        height=1,
+        tile_width=chosen.width,
+        tile_height=chosen.height,
+        y=randint(67,90),
+        x=randint(0,95)
+    )
+    splash.append(foodSprite)
+    foodz.append(foodSprite)
+
+    if len(foodz) > cheezesspawnlimit:
+        splash.remove(foodSprite)
+        foodz.remove(foodSprite)
+
+throwntoys = []
+def throwBall():
+    ball = displayio.OnDiskBitmap("assets/ball.bmp")
+    ball_sprite = displayio.TileGrid(
+        ball,
+        pixel_shader=ball.pixel_shader,
+        width=1,
+        height=1,
+        tile_width=32,
+        tile_height=32,
+        default_tile=0,
+        y=randint(67,90),
+        x=randint(0,95),
+    )
+    splash.append(ball_sprite)
+    throwntoys.append(ball_sprite)
+
+    if len(throwntoys) > 1:
+        throwntoys.remove(ball_sprite)
+        splash.remove(ball_sprite)
+
+def setup():
+    global cycleCount #everything to run the game
+    global inAlternateAnim, alternateAnimType, animationLoopTimes, frames #animation related
+    global walkx, walky, direction #walking related
+    global lastFedCycle, feedingCooldownCounter, foodz #food related
+    global wakeywakey, consecutiveEvents #sleeping
+    global throwntoys, lastexerciseCycle, exerciseNeed #he needs to move
+    global inMenu, dialogStage #ui related
+    global died, surviveCycle #Yeah, self-explanatory?
+
+    cycleCount = 0
+
+    for x in range(len(foodz)):
+        goner = foodz[0]
+        del foodz[0]
+        splash.remove(goner)
+    foodz = []
+
+    for x in range(len(foodz)):
+        goner = foodz[0]
+        del foodz[0]
+        splash.remove(goner)
+    foodz = []
+
+    lastexerciseCycle = cycleCount+TargetFPS*startFitness # he need to do sport
+
+    inMenu = False
+    dialogStage = 0
+
+    frames = {"background" : 0,
+            "mouse" : 0,
+            "unused1" : 0,
+            "unused2" : 0,}
+    inAlternateAnim = False
+    alternateAnimType = 0
+    animationLoopTimes = 0
+
+    sprites = [
+        itch_mouse_sprite,
+        walk_mouse_sprite,
+        sleep_mouse_sprite,
+        died_mouse_sprite,
+        angry_eyebrows_sprite,
+        play_mouse_sprite,
+    ]
+
+    lastFedCycle = cycleCount+TargetFPS*startHunger # FEED THE MOUS PLEASEEEE
+    feedingCooldownCounter = 0
+
+    walkx = 0.0
+    walky = 0.0
+    direction = "right"
+
+    wakeywakey = False
+    consecutiveEvents = 0
+
+    died = False
+    surviveCycle = 0
+
+    # Hide all sprites
+    for sprite in sprites:
+        sprite.hidden = True
+    mouse_sprite.hidden = False
 
 def CalculateGlideTo(sprite: displayio.TileGrid, x: int, y: int, inloops: int):
     global glideX
@@ -179,95 +294,6 @@ def CalculateGlideTo(sprite: displayio.TileGrid, x: int, y: int, inloops: int):
     glideX = diffX / inloops
     glideY = diffY / inloops
 
-foodz = []
-def giveFood():
-    chosen = foods[randint(0,len(foods)-1)]
-
-    foodSprite = displayio.TileGrid(
-        chosen,
-        pixel_shader=chosen.pixel_shader,
-        width=1,
-        height=1,
-        tile_width=chosen.width,
-        tile_height=chosen.height,
-        y=randint(67,90),
-        x=randint(0,95)
-    )
-    splash.append(foodSprite)
-    foodz.append(foodSprite)
-
-    if len(foodz) > cheezesspawnlimit:
-        splash.remove(foodSprite)
-        foodz.remove(foodSprite)
-
-def setup():
-    global frames
-    global cycleCount
-    global inAlternateAnim
-    global alternateAnimType
-    global walkx
-    global walky
-    global lastFedCycle
-    global direction
-    global wakeywakey
-    global consecutiveEvents
-    global died
-    global insertcoolvariablename
-    global animationLoopTimes
-    global dialogStage
-    global surviveCycle
-    global foodz
-
-    for x in range(len(foodz)):
-        goner = foodz[0]
-        del foodz[0]
-        splash.remove(goner)
-    foodz = []
-
-    surviveCycle = 0
-
-    dialogStage = 0
-
-    animationLoopTimes = 0
-
-    frames = {"background" : 0,
-            "mouse" : 0,
-            "unused1" : 0,
-            "unused2" : 0,}
-
-    cycleCount = 0
-
-    inAlternateAnim = False
-    alternateAnimType = 0
-
-    walkx = 0.0
-    walky = 0.0
-
-    sprites = [
-        itch_mouse_sprite,
-        walk_mouse_sprite,
-        sleep_mouse_sprite,
-        walkm_mouse_sprite,
-        died_mouse_sprite,
-        angry_eyebrows_sprite
-    ]
-
-    # Hide all sprites
-    for sprite in sprites:
-        sprite.hidden = True
-
-    lastFedCycle = cycleCount+TargetFPS*startHunger # FEED THE MOUS PLEASEEEE
-
-    direction = "right"
-
-    wakeywakey = False
-    consecutiveEvents = 0
-
-    died = False
-    insertcoolvariablename = 0
-
-    mouse_sprite.hidden = False
-
 #ui setup
 bg = displayio.OnDiskBitmap("assets/border.bmp")
 bg_Sprite = displayio.TileGrid(
@@ -279,12 +305,13 @@ bg_Sprite = displayio.TileGrid(
     tile_height=128,
     default_tile=0,
     x=(display.width - 128) // 2,  
-    y=-128
+    y=32
 )
 UIlayer.append(bg_Sprite)
 
+bg2 = displayio.OnDiskBitmap("assets/border_bottom.bmp")
 bg_Sprite2 = displayio.TileGrid(
-    bg,
+    bg2,
     pixel_shader=bg.pixel_shader,
     width=1,
     height=1,
@@ -292,12 +319,12 @@ bg_Sprite2 = displayio.TileGrid(
     tile_height=128,
     default_tile=0,
     x=(display.width - 128) // 2,  
-    y=32
+    y=-128
 )
 UIlayer.append(bg_Sprite2)
 
 labels = label.Label( #charlimit = 19, before it goes ofscreen
-    font= indieFlower12,
+    font= Delius10,
     text="",
     color=0x000000,
     scale=1,
@@ -306,9 +333,8 @@ labels = label.Label( #charlimit = 19, before it goes ofscreen
 )
 UIlayer.append(labels)
 
-
 label2 = label.Label( #charlimit = 19, before it goes ofscreen
-    font= indieFlower12,
+    font= Delius10,
     text="",
     color=0x000000,
     scale=1,
@@ -322,19 +348,17 @@ mainlayer.append(UIlayer)
 display.show(mainlayer)
 
 setup() #for the variables
+
 while True:
-
+    cycleCount += 1
     keys = pygame.key.get_pressed()
-    # sortiiibnggggg
+    
+    # layer sorting wooooo
     sorted_sprites = sorted(splash, key=lambda sprite: sprite.y)
-
     for sprite in splash[:]:  # im sure this wont cause any problems
         splash.remove(sprite)
-
     for sprite in sorted_sprites:
         splash.append(sprite)
-
-    cycleCount += 1
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -345,19 +369,39 @@ while True:
         background_sprite[0] = frames["background"]
         frames["background"] = (frames["background"] + 1) % (background_sheet.width // background_sprite.tile_width)
 
-    if int((lastFedCycle-cycleCount)/TargetFPS) <= 5 or keys[pygame.K_LEFT] or died or lastFedCycle >= cycleCount+(TargetFPS*(tooFedTime-10)*nutritionalValue): # if less than 5 secs left befor hungy
-        if not bg_Sprite.y >= -96:
-            bg_Sprite.y += 2
-    else:
-        if not bg_Sprite.y <= -128:
+    #the original if statement was WAAAY too long, simpler :)
+    #expansion script bottom UI
+    conditions = {"hungryIn5Secs" : int((lastFedCycle-cycleCount)/TargetFPS) <= 5, "fedTooMuch" : lastFedCycle >= cycleCount+(TargetFPS*(tooFedTime-10)*nutritionalValue)}
+    if conditions["hungryIn5Secs"] or conditions["fedTooMuch"] or (keys[pygame.K_LEFT] and not inMenu) or died: # if less than 5 secs left befor hungy
+        if not bg_Sprite.y <= 0:
             bg_Sprite.y -= 2
+        bg_Sprite[0] = 1
+    else:   
+        if bg_Sprite.y <= 32:
+            bg_Sprite.y += 2
 
-    if (keys[pygame.K_LEFT] and died == False) or (died == True and animationLoopTimes == 1):
-        if not bg_Sprite2.y <= 0:
-            bg_Sprite2.y -= 2
+    #expansion script for top UI
+    if (keys[pygame.K_UP] and died == False) or (died == True and animationLoopTimes == 1):
+        if not bg_Sprite2.y >= -96:
+            bg_Sprite2.y += 2        
+        
+        inMenu = not (died == True and animationLoopTimes == 1)
+
+        conditions = {"foodLimit" : len(foodz) == cheezesspawnlimit, "toyLimit" : len(throwntoys) == 1, "foodCooldown" : feedingCooldownCounter+(TargetFPS*feedingCooldown) > cycleCount}
+
+        if (conditions["foodLimit"] or conditions["foodCooldown"]) and conditions["toyLimit"]: #for some *flair*
+            bg_Sprite2[0] = 1
+        elif conditions["toyLimit"]:
+            bg_Sprite2[0] = 2
+        elif conditions["foodCooldown"] or conditions["foodLimit"]:
+            bg_Sprite2[0] = 3
+        else:
+            bg_Sprite2[0] = 0
     else:
-        if bg_Sprite2.y <= 32:
-            bg_Sprite2.y += 2
+        if not bg_Sprite2.y <= -128:
+            bg_Sprite2.y -= 2
+        
+        inMenu = False
 
     labels.x= bg_Sprite.x+5
     labels.y= bg_Sprite.y+110
@@ -369,40 +413,53 @@ while True:
 
     # should happen every tick /\
 
-    if died == False:
-        splash.remove(angry_eyebrows_sprite)
-        splash.append(angry_eyebrows_sprite)
-
+    if died == False: #should only happen if mous is not ded
         if keys[pygame.K_UP]:
-            if not insertcoolvariablename+(TargetFPS*feedingCooldown) > cycleCount:
-                giveFood()
-                insertcoolvariablename = cycleCount
-                if alternateAnimType == 3:
+            if inMenu: #better safe than sorry
+                if keys[pygame.K_RIGHT]:
+                    if not feedingCooldownCounter+(TargetFPS*feedingCooldown) > cycleCount:
+                        if not alternateAnimType == 3:
+                            giveFood()
+                            feedingCooldownCounter = cycleCount
+                        if alternateAnimType == 3:
+                            wakeywakey = True
+                        else:
+                            wakeywakey = False
+                if keys[pygame.K_LEFT]:
+                    throwBall()
                     wakeywakey = True
-                else:
-                    wakeywakey = False
 
-        if keys[pygame.K_DOWN]:
-            if alternateAnimType == 3:
-                wakeywakey = True
-            else:
-                wakeywakey = False
-
-        if cycleCount % int(TargetFPS/5) == 0: #pip the mouse, like the python pip haha 
+        if cycleCount % int(TargetFPS/5) == 0: #update the mouse
             if inAlternateAnim == False:
 
                 mouse_sprite[0] = frames["mouse"]
                 frames["mouse"] = (frames["mouse"] + 1) % (mouse_sheet.width // mouse_sprite.tile_width)
 
-                if len(foodz) > 0:
-
+                if len(throwntoys) > 0 and not cycleCount >= lastFedCycle:
                     itch_mouse_sprite.hidden = True
-                    walk_mouse_sprite.hidden = True
-                    walkm_mouse_sprite.hidden = True
+                    walk_mouse_sprite.hidden = False
                     sleep_mouse_sprite.hidden = True
                     mouse_sprite.hidden = True
                     inAlternateAnim = False
 
+                    walk_mouse_sprite.x = mouse_sprite.x
+                    walk_mouse_sprite.y = mouse_sprite.y
+
+                    inAlternateAnim = True
+                    alternateAnimType = 5
+                    animationLoopTimes = 3
+                    frames["mouse"] = 0
+
+                    walkx = walk_mouse_sprite.x
+                    walky = walk_mouse_sprite.y
+
+                    CalculateGlideTo(walk_mouse_sprite,throwntoys[0].x,throwntoys[0].y,animationLoopTimes*3)
+                elif len(foodz) > 0:
+                    itch_mouse_sprite.hidden = True
+                    walk_mouse_sprite.hidden = False
+                    sleep_mouse_sprite.hidden = True
+                    mouse_sprite.hidden = True
+                    inAlternateAnim = False
 
                     walk_mouse_sprite.x = mouse_sprite.x
                     walk_mouse_sprite.y = mouse_sprite.y
@@ -417,17 +474,10 @@ while True:
 
                     CalculateGlideTo(walk_mouse_sprite,foodz[0].x,foodz[0].y,animationLoopTimes*3)
 
-                    if direction == "right":
-                        walk_mouse_sprite.hidden = False
-                        walkm_mouse_sprite.hidden = True
-                    else:
-                        walk_mouse_sprite.hidden = True
-                        walkm_mouse_sprite.hidden = False
-
                 if frames["mouse"] == 0 and not alternateAnimType == 4: #end of anim cycle! time to roll for an event
                     if not consecutiveEvents >= 5:
                         if randint(1,2) == 1: #50% for fun random event
-                            consecutiveEvents += 1
+                            consecutiveEvents += 1 # so we know when he need to slepp
                             chance = randint(1,10)
                             if chance in [1,2,3,4]: #itchy mouse
                                 itch_mouse_sprite.x = mouse_sprite.x
@@ -443,6 +493,9 @@ while True:
                                 walk_mouse_sprite.x = mouse_sprite.x
                                 walk_mouse_sprite.y = mouse_sprite.y
 
+                                walk_mouse_sprite.hidden = False
+                                mouse_sprite.hidden = True
+
                                 inAlternateAnim = True
                                 alternateAnimType = 2
                                 animationLoopTimes = 3
@@ -454,14 +507,8 @@ while True:
                                 CalculateGlideTo(walk_mouse_sprite,randint(0,95),randint(72,108),animationLoopTimes*3)
 
                                 mouse_sprite.hidden = True
-                                if direction == "right":
-                                    walk_mouse_sprite.hidden = False
-                                    walkm_mouse_sprite.hidden = True
-                                else:
-                                    walk_mouse_sprite.hidden = True
-                                    walkm_mouse_sprite.hidden = False
-                    else:
-                        sleep_mouse_sprite.x = mouse_sprite.x #nothinf happenign, mous slepp
+                    else: #nothinf happenign, mous slepp
+                        sleep_mouse_sprite.x = mouse_sprite.x
                         sleep_mouse_sprite.y = mouse_sprite.y
 
                         mouse_sprite.hidden = True
@@ -485,14 +532,17 @@ while True:
                             mouse_sprite.hidden = False
                             inAlternateAnim = False
 
-                if alternateAnimType in [2,4]: #wandering mouse
+                            alternateAnimType = 0
+
+                if alternateAnimType in [2,4,5]: #wandering mouse
 
                     if direction == "right":
-                        walk_mouse_sprite[0] = frames["mouse"]
-                        frames["mouse"] = (frames["mouse"] + 1) % (walk_mouse_sheet.width // walk_mouse_sprite.tile_width) 
+                        walk_mouse_sprite.flip_x = False
                     else:
-                        walkm_mouse_sprite[0] = frames["mouse"]
-                        frames["mouse"] = (frames["mouse"] + 1) % (walkm_mouse_sheet.width // walkm_mouse_sprite.tile_width) 
+                        walk_mouse_sprite.flip_x = True
+
+                    walk_mouse_sprite[0] = frames["mouse"]
+                    frames["mouse"] = (frames["mouse"] + 1) % (walk_mouse_sheet.width // walk_mouse_sprite.tile_width)
 
                     walkx += glideX
                     walky += glideY
@@ -512,22 +562,32 @@ while True:
                                 mouse_sprite.x = walk_mouse_sprite.x
                                 mouse_sprite.y = walk_mouse_sprite.y
                                 walk_mouse_sprite.hidden = True
-                                walkm_mouse_sprite.hidden = True
 
                                 mouse_sprite.hidden = False
                                 inAlternateAnim = False
 
                                 lastFedCycle += TargetFPS*nutritionalValue
-
                                 alternateAnimType = 0
+                            elif alternateAnimType == 5: #Pip arrived at his destenation
+                                goner = throwntoys[0]
+                                del throwntoys[0]
+                                splash.remove(goner)
+                                consecutiveEvents = 0
+                                play_mouse_sprite.x = walk_mouse_sprite.x-20
+                                play_mouse_sprite.y = walk_mouse_sprite.y-20
+                                walk_mouse_sprite.hidden = True
+                                animationLoopTimes = 3
+
+                                play_mouse_sprite.hidden = False
+                                alternateAnimType = 6
                             else:
                                 mouse_sprite.x = walk_mouse_sprite.x
                                 mouse_sprite.y = walk_mouse_sprite.y
                                 walk_mouse_sprite.hidden = True
-                                walkm_mouse_sprite.hidden = True
 
                                 mouse_sprite.hidden = False
                                 inAlternateAnim = False
+                                alternateAnimType = 0
 
                 if alternateAnimType == 3: #sleepyu mouse
                     sleep_mouse_sprite[0] = frames["mouse"]
@@ -543,6 +603,26 @@ while True:
                             mouse_sprite.hidden = False
                             inAlternateAnim = False
 
+                            alternateAnimType = 0
+
+                if alternateAnimType == 6: #mous playing with ball c:
+                    if cycleCount % int(TargetFPS/3) == 0:
+                        play_mouse_sprite[0] = frames["mouse"]
+                        frames["mouse"] = (frames["mouse"] + 1) % (play_mouse_sheet.width // play_mouse_sprite.tile_width) 
+
+                    if frames["mouse"] == 0:
+                        if animationLoopTimes > 0:
+                            animationLoopTimes -= 1
+                        else:
+                            mouse_sprite.x = play_mouse_sprite.x+20
+                            mouse_sprite.y = play_mouse_sprite.y+20
+                            play_mouse_sprite.hidden = True
+
+                            mouse_sprite.hidden = False
+                            inAlternateAnim = False
+
+                            alternateAnimType = 0
+
         if mouse_sprite.x < 0:
             mouse_sprite.x = 0
         elif mouse_sprite.x > 96:
@@ -553,7 +633,7 @@ while True:
         elif walk_mouse_sprite.x > 96:
             walk_mouse_sprite.x = 96
 
-        if cycleCount >= lastFedCycle: # add +(TargetFPS*1) if ya want it to be time based idk
+        if cycleCount >= lastFedCycle: # if hunger
             angry_eyebrows_sprite.hidden = mouse_sprite.hidden
 
             angry_eyebrows_sprite.x = mouse_sprite.x
@@ -564,7 +644,6 @@ while True:
                 itch_mouse_sprite.hidden = True
                 walk_mouse_sprite.hidden = True
                 sleep_mouse_sprite.hidden = True
-                walkm_mouse_sprite.hidden = True
                 died_mouse_sprite.hidden = False
                 angry_eyebrows_sprite.hidden = True
 
@@ -579,14 +658,12 @@ while True:
                 frames["mouse"] = 0
         else:
             angry_eyebrows_sprite.hidden = True
-
             if lastFedCycle >= cycleCount+(TargetFPS*tooFedTime*nutritionalValue): # oop too uhhh full???
                 died = True
                 mouse_sprite.hidden = True
                 itch_mouse_sprite.hidden = True
                 walk_mouse_sprite.hidden = True
                 sleep_mouse_sprite.hidden = True
-                walkm_mouse_sprite.hidden = True
                 died_mouse_sprite.hidden = False
                 angry_eyebrows_sprite.hidden = True
 
@@ -600,25 +677,31 @@ while True:
 
                 frames["mouse"] = 1
 
-        walkm_mouse_sprite.x = walk_mouse_sprite.x
-        walkm_mouse_sprite.y = walk_mouse_sprite.y
-
-        if lastFedCycle >= cycleCount+(TargetFPS*(tooFedTime-10)*nutritionalValue): # oop too uhhh full???
+        if lastFedCycle >= cycleCount+(TargetFPS*(tooFedTime-10)*nutritionalValue): # slow down...
             labels.text = f"TOO MUCH FOOD!!!!!"
         elif int((lastFedCycle-cycleCount)/TargetFPS)-1 >= 0:
-            remaining_time = (lastFedCycle - cycleCount) / TargetFPS
+            if int(cycleCount/TargetFPS) % 15 <= 5 or int((lastFedCycle-cycleCount)/TargetFPS) <= 5:
+                remaining_time = (lastFedCycle - cycleCount) / TargetFPS
+            elif int(cycleCount/TargetFPS) % 10 <= 10 or int((lastexerciseCycle-cycleCount)/TargetFPS) <= 5:
+                remaining_time = (lastexerciseCycle - cycleCount) / TargetFPS        
+            else:
+                remaining_time = cycleCount / TargetFPS
+
             minutes = int(remaining_time // 60)  # Extract full minutes
             seconds = int(remaining_time % 60)   # Extract remaining seconds
 
-            labels.text = f"Hungry in: {minutes:01} : {seconds:02}"
+            if int(cycleCount/TargetFPS) % 15 <= 5 or int((lastFedCycle-cycleCount)/TargetFPS) <= 5:
+                labels.text = f"Hungry in: {minutes:01} : {seconds:02}"
+            elif int(cycleCount/TargetFPS) % 10 <= 10 or int((lastexerciseCycle-cycleCount)/TargetFPS) <= 5:
+                labels.text = f"Exercise in: {minutes:01} : {seconds:02}"          
+            else:
+                labels.text = f"Time alive: {minutes:01} : {seconds:02}"
+        elif int((lastexerciseCycle-cycleCount)/TargetFPS) <= 5:
+            labels.text = "PIP NEEDS TO EXERCISE!!!"
         else:
             labels.text = "PIP IS HUNGRY!!!"
-
-        remaining_time = cycleCount / TargetFPS
-        minutes = int(remaining_time // 60)  # Extract full minutes
-        seconds = int(remaining_time % 60)   # Extract remaining seconds
-        label2.text = f"Time alive: {minutes:01} : {seconds:02}"
     else: # ded xc
+        bg_Sprite2[0] = 4
         if animationLoopTimes == 5 and dialogStage == 0:
             choices = ["oh no...","wait...","is- did he?"]
             labels.text = choices[randint(0,len(choices)-1)]
@@ -632,7 +715,7 @@ while True:
                 if animationLoopTimes > 0:
                     animationLoopTimes -= 1
                 if animationLoopTimes == 4:
-                    choices = ["pip died...","IS HE OKAY?","he died..."]
+                    choices = ["pip died...","is he okay?","he died...","PIP! ARE YOU OKAY?"]
                     labels.text = choices[randint(0,len(choices)-1)]
                 if animationLoopTimes == 3:
                     if cause == 1:
@@ -641,14 +724,26 @@ while True:
                     elif cause == 2:
                         choices = ["he was overfed...","thats, too much...","too much food..."]
                         labels.text = choices[randint(0,len(choices)-1)]
+                    elif cause == 3:
+                        choices = ["he needs exercice...","he needs to move","lack of movement..."]
+                        labels.text = choices[randint(0,len(choices)-1)]
+                    elif cause == 4:
+                        choices = ["he's exhausted...","too much exercice...","he needs rest..."]
+                        labels.text = choices[randint(0,len(choices)-1)]
                     else:
                         labels.text = "huh, that's weird..."
                 if animationLoopTimes == 2:
                     if cause == 1:
-                        choices = ["give him more food","please feed him...","can you give food?"]
+                        choices = ["give him more food...","please feed him...","can you give food?"]
                         labels.text = choices[randint(0,len(choices)-1)]
                     elif cause == 2:
                         choices = ["less food next time","pip has his limits","mice eat less..."]
+                        labels.text = choices[randint(0,len(choices)-1)]
+                    elif cause == 3:
+                        choices = ["throw a ball to him","play with him :(","he needs exercise..."]
+                        labels.text = choices[randint(0,len(choices)-1)]
+                    elif cause == 4:
+                        choices = ["less exercice...","pip needs his rest","maybe let him rest"]
                         labels.text = choices[randint(0,len(choices)-1)]
                     else:
                         labels.text = "what happened?"
@@ -661,10 +756,11 @@ while True:
                     seconds = int(remaining_time % 60)   # Extract remaining seconds
                     label2.text = f"Time alive: {minutes:01} : {seconds:02}"
                 if animationLoopTimes == 0:
-                    labels.text = "(DOWN) to restart"
+                    labels.text = "Press (UP) to restart"
                 
         if animationLoopTimes == 0:
-            if keys[pygame.K_DOWN]:
+            if keys[pygame.K_UP]:
+                label2.text = ""
                 setup()
 
     time.sleep(1/TargetFPS) #Should bring us close enough
