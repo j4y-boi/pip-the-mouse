@@ -10,6 +10,7 @@ Pip was written using circuitPython, which is why he's named pip. Ya know, the p
 - Feeding Pip an assortment of foods! (cheese, peanuts, apple slices, grapes)
 - If he's bored he'll start to sleep
 - Very important! If you feed him too much (or too little) he'll uhhh <sub>die</sub> ...
+- He needs to exercise! Mice need activity too...
 
 # Game Controls
 **PC:**
