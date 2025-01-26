@@ -11,9 +11,11 @@ from random import randint
 from random import seed
 from adafruit_bitmap_font import bitmap_font
 from displayio import Bitmap
+import json
+import os
 
-indieFlower11 = bitmap_font.load_font("fonts/Indie-Flower-11.bdf", Bitmap)
 Delius10 = bitmap_font.load_font("fonts/Delius-10.bdf", Bitmap)
+Delius8 = bitmap_font.load_font("fonts/Delius-8.bdf", Bitmap)
 
 for x in range(randint(0,10)): #This might look dangerous and all, but this is just to make RNG a bit better
     seed(randint(0,9999999+x))
@@ -25,18 +27,24 @@ UIlayer = displayio.Group()
 mainlayer = displayio.Group()
 
 # Config (sorry for the essay, better too much documentation than too little am i right)
+# It's generally recommended to NOT go under the default values, could lead to some weird glitches...
 
 debug = False #should be off if you're planning on writing it, quite resource intensive (just prints extra data)
-TargetFPS = 15 # default = 15 (does change the animation speeds, FIXED WHOOOOOO)
+TargetFPS = 15 # default = 15 (does change the animation speeds, nope FIXED NOW WHOOOOOO)
+autosaveInterval = 30 #seconds for autosave
+resetTime = 15 #how long to hold all three buttons to reset button
+
 cheezesspawnlimit = 10 #for performance and also so it doesnt explod (default = 10)
 feedingCooldown = 1 #cooldown inbetween giving food (in seconds, default 1)
+nutritionalValue = 20 #uhhh yeah (default 20)
+
 notFedTime = 20 #amount of time of unfed before death (in seconds, default 20)
 tooFedTime = 50 #amount of food before death (in amounts of food, default 50)
-nutritionalValue = 20 #uhhh yeah (default 20)
 startHunger = 30 #how much time before mous starts to get hungy (in seconds, default 30)
-startFitness = 30 #how much time before pip needs to start MOVIN (in seconds, default 30)
+
 exerciseNeed = 60 #mouse needs to move atleast once every this much seconds (in seconds, default 60)
-noexerciseTime = 30 #if the mouse isnt moving after (exerciseNeed) seconds, he'll dei (in seconds, default 30)
+tooExercise = 30 #amount of play before death (in amount of playing with the ball, default 30)
+startFitness = 60 #how much time before pip needs to start MOVIN (in seconds, default 60)
 
 # End Config :P
 
@@ -47,8 +55,12 @@ peanut = displayio.OnDiskBitmap("assets/peanut.bmp")
 grapes = displayio.OnDiskBitmap("assets/grapes.bmp")
 foods = [cheese,grapes,peanut,apple]
 
+ball = displayio.OnDiskBitmap("assets/ball.bmp")
+heart = displayio.OnDiskBitmap("assets/heart.bmp")
+
 # Background Spritesheet #
-background_sheet = displayio.OnDiskBitmap(f"assets/room{randint(1,2)}.bmp")
+backgroundID = randint(1,3)
+background_sheet = displayio.OnDiskBitmap(f"assets/room{backgroundID}.bmp")
 background_sprite = displayio.TileGrid(
     background_sheet,
     pixel_shader=background_sheet.pixel_shader,
@@ -189,7 +201,6 @@ def giveFood():
 
 throwntoys = []
 def throwBall():
-    ball = displayio.OnDiskBitmap("assets/ball.bmp")
     ball_sprite = displayio.TileGrid(
         ball,
         pixel_shader=ball.pixel_shader,
@@ -217,14 +228,13 @@ def setup():
     global throwntoys, lastexerciseCycle, exerciseNeed #he needs to move
     global inMenu, dialogStage #ui related
     global died, surviveCycle #Yeah, self-explanatory?
+    global lastSaveCycle, epicVariable
 
     cycleCount = 0
+    
+    lastSaveCycle = cycleCount
 
-    for x in range(len(foodz)):
-        goner = foodz[0]
-        del foodz[0]
-        splash.remove(goner)
-    foodz = []
+    epicVariable = lastSaveCycle
 
     for x in range(len(foodz)):
         goner = foodz[0]
@@ -312,7 +322,7 @@ UIlayer.append(bg_Sprite)
 bg2 = displayio.OnDiskBitmap("assets/border_bottom.bmp")
 bg_Sprite2 = displayio.TileGrid(
     bg2,
-    pixel_shader=bg.pixel_shader,
+    pixel_shader=bg2.pixel_shader,
     width=1,
     height=1,
     tile_width=128,
@@ -323,8 +333,8 @@ bg_Sprite2 = displayio.TileGrid(
 )
 UIlayer.append(bg_Sprite2)
 
-labels = label.Label( #charlimit = 19, before it goes ofscreen
-    font= Delius10,
+labels = label.Label( #charlimit = ~25, this one uses a small font, haven't tested yet
+    font= Delius8,
     text="",
     color=0x000000,
     scale=1,
@@ -332,6 +342,19 @@ labels = label.Label( #charlimit = 19, before it goes ofscreen
     y=105
 )
 UIlayer.append(labels)
+
+UIImage = displayio.TileGrid( #image to be used for bottom ui, only 32x32 tho
+    cheese,
+    pixel_shader=cheese.pixel_shader,
+    width=1,
+    height=1,
+    tile_width=32,
+    tile_height=32,
+    default_tile=0,
+    x=(display.width - 128) // 2,  
+    y=-128
+)
+UIlayer.append(UIImage)
 
 label2 = label.Label( #charlimit = 19, before it goes ofscreen
     font= Delius10,
@@ -343,11 +366,95 @@ label2 = label.Label( #charlimit = 19, before it goes ofscreen
 )
 UIlayer.append(label2)
 
+autosave = label.Label( #charlimit = 19, before it goes ofscreen
+    font= Delius10,
+    text="",
+    color=0xFFFFFF,
+    scale=1,
+    x=0,
+    y=8
+)
+UIlayer.append(autosave)
+
+def changeUIImage(image):
+    if image == "":
+        UIImage.hidden = True
+    else:
+        UIImage.hidden = False
+        UIImage.bitmap = image
+        if isinstance(image.pixel_shader, (displayio.ColorConverter, displayio.Palette)):
+            UIImage.pixel_shader = image.pixel_shader
+        else:
+            UIImage.pixel_shader = displayio.ColorConverter()
+
+def saveFileWrite():
+    global epicVariable
+    global lastSaveCycle
+    try:
+        toWrite = {"cyclecount": cycleCount,
+                "lastfed": lastFedCycle,
+                "lastexercise": lastexerciseCycle,
+                "survivescore": surviveCycle,
+                "mouseX": mouse_sprite.x,
+                "mouseY": mouse_sprite.y,
+                "house": backgroundID}
+        with open("savefile.json","w") as f:
+            json.dump(toWrite,f)
+        autosave.text = "Saving..."
+        epicVariable = cycleCount + (TargetFPS*3)
+        lastSaveCycle = cycleCount
+    except Exception as e:
+        autosave.text = e
+        epicVariable = cycleCount + (TargetFPS*3)
+        time.sleep(3)
+    
+setup() #for the variables
+
+#i know i'm supposed to check before loading, but ya know, that costs a lotta time todo
+if not os.path.exists("savefile.json"):
+    print("no savefile, continue setup")
+    saveFileWrite()
+    autosave.text = "Created save file"
+else:
+    try:
+        with open("savefile.json","r") as file:
+            savefile = json.load(file)
+    except:
+        savefile = {}
+
+    print("found and loaded save file")
+    if len(savefile) == 7:
+        cycleCount = savefile["cyclecount"]
+        lastFedCycle = savefile["lastfed"]
+        lastexerciseCycle = savefile["lastexercise"]
+        surviveCycle = savefile["survivescore"]
+        mouse_sprite.x,mouse_sprite.y = savefile["mouseX"],savefile["mouseY"]
+        backgroundID = savefile["house"]
+
+        splash.remove(background_sprite)
+        background_sheet = displayio.OnDiskBitmap(f"assets/room{backgroundID}.bmp")
+        background_sprite = displayio.TileGrid(
+            background_sheet,
+            pixel_shader=background_sheet.pixel_shader,
+            width=1,
+            height=1,
+            tile_width=128,
+            tile_height=128,
+            default_tile=0,
+            x=(display.width - 128) // 2,  
+            y=display.height - 128 - 0
+        )
+        splash.append(background_sprite)
+
+        autosave.text = "Loaded save file"
+        epicVariable = cycleCount + (TargetFPS*3)
+    else:
+        print("error with save file, or i coded wrong oosp.")
+        saveFileWrite()
+
 mainlayer.append(splash)
 mainlayer.append(UIlayer)
 display.show(mainlayer)
-
-setup() #for the variables
 
 while True:
     cycleCount += 1
@@ -365,14 +472,20 @@ while True:
             pygame.quit()
             exit()
 
+    if cycleCount % (TargetFPS*autosaveInterval) == 0:
+        saveFileWrite()
+
+    if epicVariable == cycleCount:
+        autosave.text = ""
+
     if cycleCount % int(TargetFPS/2) == 0: #background
         background_sprite[0] = frames["background"]
         frames["background"] = (frames["background"] + 1) % (background_sheet.width // background_sprite.tile_width)
 
     #the original if statement was WAAAY too long, simpler :)
     #expansion script bottom UI
-    conditions = {"hungryIn5Secs" : int((lastFedCycle-cycleCount)/TargetFPS) <= 5, "fedTooMuch" : lastFedCycle >= cycleCount+(TargetFPS*(tooFedTime-10)*nutritionalValue)}
-    if conditions["hungryIn5Secs"] or conditions["fedTooMuch"] or (keys[pygame.K_LEFT] and not inMenu) or died: # if less than 5 secs left befor hungy
+    conditions = {"hungryIn5Secs" : int((lastFedCycle-cycleCount)/TargetFPS) <= 5, "fedTooMuch" : lastFedCycle >= cycleCount+(TargetFPS*(tooFedTime-10)*nutritionalValue), "tooLittleExercise" : int((lastexerciseCycle-cycleCount)/TargetFPS) <= 5, "toomuchexercise" : lastexerciseCycle >= cycleCount+(TargetFPS*(tooExercise-10)*30),}
+    if conditions["hungryIn5Secs"] or conditions["fedTooMuch"] or conditions["toomuchexercise"] or conditions["tooLittleExercise"] or (keys[pygame.K_LEFT] and not inMenu) or died: # if less than 5 secs left befor hungy
         if not bg_Sprite.y <= 0:
             bg_Sprite.y -= 2
         bg_Sprite[0] = 1
@@ -400,12 +513,15 @@ while True:
     else:
         if not bg_Sprite2.y <= -128:
             bg_Sprite2.y -= 2
-        
         inMenu = False
 
     labels.x= bg_Sprite.x+5
     labels.y= bg_Sprite.y+110
     labels.hidden = bg_Sprite.hidden
+
+    UIImage.x = bg_Sprite.x+90
+    UIImage.y = bg_Sprite.y+95
+    UIImage.hidden = bg_Sprite.hidden
 
     label2.x= bg_Sprite2.x+5
     label2.y= bg_Sprite2.y+110
@@ -428,6 +544,20 @@ while True:
                 if keys[pygame.K_LEFT]:
                     throwBall()
                     wakeywakey = True
+        else:
+
+            if keys[pygame.K_LEFT] and keys[pygame.K_RIGHT] and not inMenu:
+                if os.path.exists("savefile.json"):
+                    os.remove("savefile.json")
+                    autosave.text = "Restart to delete save,\n (RIGHT) to restore"
+                    epicVariable = cycleCount + (TargetFPS*3)
+                else:
+                    autosave.text = "No save file detected"
+                    epicVariable = cycleCount + (TargetFPS*3)
+            else:
+                if keys[pygame.K_RIGHT] and not keys[pygame.K_UP] and not keys[pygame.K_LEFT] and not inMenu:
+                    saveFileWrite()
+            
 
         if cycleCount % int(TargetFPS/5) == 0: #update the mouse
             if inAlternateAnim == False:
@@ -474,7 +604,7 @@ while True:
 
                     CalculateGlideTo(walk_mouse_sprite,foodz[0].x,foodz[0].y,animationLoopTimes*3)
 
-                if frames["mouse"] == 0 and not alternateAnimType == 4: #end of anim cycle! time to roll for an event
+                if frames["mouse"] == 0 and not alternateAnimType in [4,5]: #end of anim cycle! time to roll for an event
                     if not consecutiveEvents >= 5:
                         if randint(1,2) == 1: #50% for fun random event
                             consecutiveEvents += 1 # so we know when he need to slepp
@@ -621,6 +751,8 @@ while True:
                             mouse_sprite.hidden = False
                             inAlternateAnim = False
 
+                            lastexerciseCycle += TargetFPS*30
+
                             alternateAnimType = 0
 
         if mouse_sprite.x < 0:
@@ -644,6 +776,7 @@ while True:
                 itch_mouse_sprite.hidden = True
                 walk_mouse_sprite.hidden = True
                 sleep_mouse_sprite.hidden = True
+                play_mouse_sprite.hidden = True
                 died_mouse_sprite.hidden = False
                 angry_eyebrows_sprite.hidden = True
 
@@ -664,6 +797,7 @@ while True:
                 itch_mouse_sprite.hidden = True
                 walk_mouse_sprite.hidden = True
                 sleep_mouse_sprite.hidden = True
+                play_mouse_sprite.hidden = True
                 died_mouse_sprite.hidden = False
                 angry_eyebrows_sprite.hidden = True
 
@@ -677,12 +811,64 @@ while True:
 
                 frames["mouse"] = 1
 
-        if lastFedCycle >= cycleCount+(TargetFPS*(tooFedTime-10)*nutritionalValue): # slow down...
+        if cycleCount >= lastexerciseCycle: # if no sport
+            if cycleCount >= lastexerciseCycle+(TargetFPS*exerciseNeed): #he needs sport tho
+                died = True
+                mouse_sprite.hidden = True
+                itch_mouse_sprite.hidden = True
+                walk_mouse_sprite.hidden = True
+                sleep_mouse_sprite.hidden = True
+                play_mouse_sprite.hidden = True
+                died_mouse_sprite.hidden = False
+                angry_eyebrows_sprite.hidden = True
+
+                died_mouse_sprite.x = mouse_sprite.x
+                died_mouse_sprite.y = mouse_sprite.y
+
+                animationLoopTimes = 5
+
+                cause = 3
+                surviveCycle = cycleCount
+
+                frames["mouse"] = 0
+        else:
+            if lastexerciseCycle >= cycleCount+(TargetFPS*tooExercise*30): # exhausted
+                died = True
+                mouse_sprite.hidden = True
+                itch_mouse_sprite.hidden = True
+                walk_mouse_sprite.hidden = True
+                sleep_mouse_sprite.hidden = True
+                play_mouse_sprite.hidden = True
+                died_mouse_sprite.hidden = False
+                angry_eyebrows_sprite.hidden = True
+
+                died_mouse_sprite.x = mouse_sprite.x
+                died_mouse_sprite.y = mouse_sprite.y
+
+                animationLoopTimes = 5
+
+                cause = 4
+                surviveCycle = cycleCount
+
+                frames["mouse"] = 1
+
+        #all done i think
+        if int((lastFedCycle-cycleCount)/TargetFPS) <= 0:
+            labels.text = "PIP IS HUNGRY!!!"
+            changeUIImage(cheese)
+        elif lastFedCycle >= cycleCount+(TargetFPS*(tooFedTime-10)*nutritionalValue): # slow down...
             labels.text = f"TOO MUCH FOOD!!!!!"
-        elif int((lastFedCycle-cycleCount)/TargetFPS)-1 >= 0:
+            changeUIImage(cheese)
+        elif int((lastexerciseCycle-cycleCount)/TargetFPS) <= 0:
+            labels.text = "PIP NEEDS EXERCISE!"
+            changeUIImage("")
+        elif lastexerciseCycle >= cycleCount+(TargetFPS*(tooExercise-10)*30):
+            labels.text = "TOO MUCH EXERCISE!"
+            changeUIImage("")
+        else:
             if int(cycleCount/TargetFPS) % 15 <= 5 or int((lastFedCycle-cycleCount)/TargetFPS) <= 5:
                 remaining_time = (lastFedCycle - cycleCount) / TargetFPS
-            elif int(cycleCount/TargetFPS) % 10 <= 10 or int((lastexerciseCycle-cycleCount)/TargetFPS) <= 5:
+            elif int(cycleCount/TargetFPS) % 15 <= 10 or int((lastexerciseCycle-cycleCount)/TargetFPS) <= 5:
                 remaining_time = (lastexerciseCycle - cycleCount) / TargetFPS        
             else:
                 remaining_time = cycleCount / TargetFPS
@@ -692,20 +878,24 @@ while True:
 
             if int(cycleCount/TargetFPS) % 15 <= 5 or int((lastFedCycle-cycleCount)/TargetFPS) <= 5:
                 labels.text = f"Hungry in: {minutes:01} : {seconds:02}"
-            elif int(cycleCount/TargetFPS) % 10 <= 10 or int((lastexerciseCycle-cycleCount)/TargetFPS) <= 5:
-                labels.text = f"Exercise in: {minutes:01} : {seconds:02}"          
+                changeUIImage(cheese)
+            elif int(cycleCount/TargetFPS) % 15 <= 10 or int((lastexerciseCycle-cycleCount)/TargetFPS) <= 5:
+                labels.text = f"Exercise in: {minutes:01} : {seconds:02}"   
+                changeUIImage(ball)
             else:
                 labels.text = f"Time alive: {minutes:01} : {seconds:02}"
-        elif int((lastexerciseCycle-cycleCount)/TargetFPS) <= 5:
-            labels.text = "PIP NEEDS TO EXERCISE!!!"
-        else:
-            labels.text = "PIP IS HUNGRY!!!"
+                changeUIImage(heart)
+
     else: # ded xc
+        changeUIImage("")
         bg_Sprite2[0] = 4
         if animationLoopTimes == 5 and dialogStage == 0:
             choices = ["oh no...","wait...","is- did he?"]
             labels.text = choices[randint(0,len(choices)-1)]
             dialogStage = 1
+
+        if surviveCycle+1 == cycleCount:
+            saveFileWrite()
 
         if cycleCount % int(TargetFPS) == 0:
             died_mouse_sprite[0] = frames["mouse"]
@@ -720,33 +910,27 @@ while True:
                 if animationLoopTimes == 3:
                     if cause == 1:
                         choices = ["he starved...","wheres the food?","you gotta feed him!"]
-                        labels.text = choices[randint(0,len(choices)-1)]
                     elif cause == 2:
                         choices = ["he was overfed...","thats, too much...","too much food..."]
-                        labels.text = choices[randint(0,len(choices)-1)]
                     elif cause == 3:
-                        choices = ["he needs exercice...","he needs to move","lack of movement..."]
-                        labels.text = choices[randint(0,len(choices)-1)]
+                        choices = ["he needs exercise...","he needs to move...","lack of movement..."]
                     elif cause == 4:
-                        choices = ["he's exhausted...","too much exercice...","he needs rest..."]
-                        labels.text = choices[randint(0,len(choices)-1)]
+                        choices = ["he's exhausted...","too much exercise...","he needs rest..."]
                     else:
                         labels.text = "huh, that's weird..."
+                    labels.text = choices[randint(0,len(choices)-1)]
                 if animationLoopTimes == 2:
                     if cause == 1:
                         choices = ["give him more food...","please feed him...","can you give food?"]
-                        labels.text = choices[randint(0,len(choices)-1)]
                     elif cause == 2:
-                        choices = ["less food next time","pip has his limits","mice eat less..."]
-                        labels.text = choices[randint(0,len(choices)-1)]
+                        choices = ["less food next time...","pip has his limits.","mice eat less..."]
                     elif cause == 3:
-                        choices = ["throw a ball to him","play with him :(","he needs exercise..."]
-                        labels.text = choices[randint(0,len(choices)-1)]
+                        choices = ["throw a ball to him...","play with him :(","he needs exercise..."]
                     elif cause == 4:
-                        choices = ["less exercice...","pip needs his rest","maybe let him rest"]
-                        labels.text = choices[randint(0,len(choices)-1)]
+                        choices = ["a small mouse has limits...","pip needs his rest...","maybe let him rest?"]
                     else:
-                        labels.text = "what happened?"
+                        choices = ["what happened?"]
+                    labels.text = choices[randint(0,len(choices)-1)]
                 if animationLoopTimes == 1:
                     choices = ["poor thing...","aw man...","sorry pip..."]
                     labels.text = choices[randint(0,len(choices)-1)]
@@ -772,12 +956,13 @@ while True:
         debugString = debugString + f"consecutiveActions: {consecutiveEvents} | "
         debugString = debugString + f"alternateAnim: {inAlternateAnim} | "
         debugString = debugString + f"animType: {alternateAnimType} | "
-        debugString = debugString + f"foods left : {len(foodz)} | "
+        debugString = debugString + f"foods : {len(foodz)} | "
         debugString = debugString + f"animationcycle : {animationLoopTimes} | "
         #debugString = debugString + f"walkHid: {walk_mouse_sprite.hidden} | "
         #debugString = debugString + f"itchHid: {itch_mouse_sprite.hidden} | "
         #debugString = debugString + f"mouseHid: {mouse_sprite.hidden} | "
-        #ebugString = debugString + f"sleepHid: {sleep_mouse_sprite.hidden} | "
+        #debugString = debugString + f"sleepHid: {sleep_mouse_sprite.hidden} | "
+        #debugString = debugString + f"playHid: {play_mouse_sprite.hidden} | "
         #debugString = debugString + f"died: {died} | "
 
         print(debugString)
