@@ -23,7 +23,7 @@ Pip was written using circuitPython, which is why he's named pip. Ya know, the p
  - Left + Right Arrow: Delete save file (Restart game to confirm, right arrow to cancel)
   
 **Hackapet:**
-- I'll add support when I get one...
+- I'll add support when I get one... (probably same as arrow keys tho)
 
 # Playing it
 Oh! You want to play the game! Sure, here are some instructions:
@@ -37,7 +37,7 @@ source .env/bin/activate
 ```
 pip3 install blinka-displayio-pygamedisplay adafruit-circuitpython-display-text
 ```
-- Now run main.py while you're in your venv and you should be good to go!
+- Now run main.py (while you're in your venv) and you should be good to go!
 
 # Some screenshots
 ![a screenshot from one type of room (dark walls)](https://raw.githubusercontent.com/j4y-boi/pip-the-mouse/refs/heads/main/readme-assets/screenshots/screenshot1.png)
