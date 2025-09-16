@@ -1,5 +1,6 @@
 ![logo](https://raw.githubusercontent.com/j4y-boi/pip-the-mouse/refs/heads/main/readme-assets/logov2Trimmed.png)
-#  Your small mouse friend written in Python! (Made for Hackapet) 
+# Check [the sequel](https://j4y-boi.itch.io/pip-the-mouse-2) out too!
+##  Your small mouse friend written in Python! (Made for Hackapet) 
 Pip the Mouse is a small game/pet written for your Hackapet! You can watch him sleep, feed him, ... ~~If something goes wrong he'll start to climb walls so, watch out for that...~~  
 
 # Wait what
