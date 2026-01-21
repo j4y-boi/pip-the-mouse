@@ -50,7 +50,5 @@ pip3 install blinka-displayio-pygamedisplay adafruit-circuitpython-display-text
 ![a screenshot of pip being, uh dead?](https://raw.githubusercontent.com/j4y-boi/pip-the-mouse/refs/heads/main/readme-assets/screenshots/screenshot7.png)
 
 # License
-```
-Pip the Mouse is licensed under the GPL-3.0 license,
-a copy of which can be found in the LICENSE file in the repository. 
-```
+Pip the Mouse by [j4y_boi](https://github.com/j4y-boi) is licensed under [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/)
+
